@@ -1,0 +1,300 @@
+---
+title: "Instabilidade institucional e a rotatividade dos cargos comissionados"
+author: "Daniel Marques Vieira | Mestrando em Ciência Política - Ipol/UnB"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: true
+    toc_depth: 3
+    number_sections: true
+    theme: lumen
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(readr)
+library(scales)
+library(infer)
+library(knitr)
+library(broom)
+library(kableExtra)
+library(gt)
+```
+
+# Resumo
+
+-   A pesquisa utiliza dados dos servidores públicos disponíveis do Portal da Transparência para criar uma base de dados de rotatividade mensal dos servidores comissionados.
+
+-   O objetivo é avaliar se o impeachment de Dilma Rousseff teve impacto no padrão de concessão de cargos como ferramenta para formação de coalizões majoritárias no Parlamento.
+
+-   A análise de dados mostra uma elevação da média de rotatividade de 3,12% antes do afastamento de Dilma para 4,17% após o afastamento.
+
+# Introdução
+
+O objetivo deste trabalho é analisar como o ambiente de instabilidade institucional vivido no Brasil desde o impeachment de Dilma Rousseff afetou um dos principais itens da "caixa de ferramentas" (RAILE, PEREIRA e POWER, 2011) que o presidente da República, como chefe do Poder Executivo, dispõe para formação de uma coalizão majoritária no Parlamento: os cargos de comissão.
+
+Este trabalho foi feito como parte da disciplina "Métodos Quantitativos Aplicados à Ciência Política", como parte do Mestrado Acadêmico do Programa de Pós Graduação em Ciência Política (PPG-CP) da Universidade da Brasília (UnB).
+
+## O que será analisado?
+
+O trabalho se propõe a analisar o fluxo de contratação e demissão de **servidores de livre provimento** do Poder Executivo Federal.
+
+**Servidores de livre provimento**: Cargos sobre os quais o chefe do Executivo pode dispor livremente, contratando ou demitindo seus ocupantes no momento que desejar. São cargos que dependem de confiança, normalmente de direção, chefia ou assessoramento.
+
+Será utilizada **base de dados de elaboração própria** (melhor descrita nas próximas seções) que contém a rotatividade mensal dos cargos de livre provimento do Executivo. Para o tratamento da base de dados e a análise será utilizado o software RStudio, que permite manipulação de dados na linguagem de programação "R".
+
+**A hipótese a ser testada:** O afastamento de Dilma Rousseff (agosto de 2016) aumentou a rotatividade dos cargos comissionados?
+
+## Porque importa?
+
+**Qualidade do serviço público e corrupção:** Na literatura de ciência política é comum a preocupação sobre o impacto da distribuição de cargos na lisura do sistema político brasileiro.
+
+*Corrupção e nomeações de confiança naturalmente se associam porque a prática corrupta é, em um dos lados, gestada por nomeados que ocupam posições de poder no aparato estatal. O controle sobre as nomeações é, nesse sentido, aspecto fundamental na relação com a corrupção, seja para coibi-la, seja para praticá-la. (LOPEZ, 2015, p.24)*
+
+**Dificuldades para governar:** Além disso, o ambiente de polarização que resultou impeachment de Dilma, e que se sustenta até os dias de hoje, pode ter impactos relevantes no custo da coalizão. Em resumo, se torna mais difícil governar em um modelo de presidencialismo de coalizão.
+
+Diversos estudos mostram que a polarização tem crescido, principalmente alimentada pela cada vez maior identificação com ideologias políticas de direita, como mostram os dados do Estudo Eleitoral Brasileiro (Eseb) e do Latin American Public Opinion Project (Lapop), da Vanderbilt University, organizados e analisados por Fuks e Marques (2022). **Como já previa Abranches (1988, p.29), “a existência de distâncias muito grandes na posição ideológica e programática [...] pode comprometer seriamente sua estabilidade [do presidencialismo de coalizão]”.**
+
+# Método
+
+## Obtenção dos dados
+
+A base de dados utilizada na análise que se seguirá foi elaborada com base em dados públicos obtidos no Portal da Transparência ([LINK](https://portaldatransparencia.gov.br/download-de-dados/servidores)). Nessa fonte, é possível encontrar tabelas mensais, indicando nome, CPF parcial, cargo e órgão de vinculação de todos os servidores públicos daquele exercício. Os dados disponíveis vão de janeiro de 2013 aos dias atuais. Apesar dessa limitação temporal, esse recorte nos permite algumas análises interessantes por abranger os eventos mais recentes que causaram ou foram causados por instabilidade institucional.
+
+O primeiro passo, portanto, foi o tratamento da base de dados, de modo a unificar os microdados e gerar unidades passíveis de análise. Abaixo, explico o passo-a-passo para obtenção e análise dos dados. As etapas farão referência a linhas específicas no script disponibilizado neste repositório.
+
+Passo a passo:
+
+**1- Organização manual dos arquivos**: Os dados dos servidores publicos são disponibilizados no Portal da Tranparência no formato .CSV, com um arquivo referente a cada mês. Os arquivos foram baixados um por um, colocado na mesma pasta e tiveram seus títulos alterados para corresponderem ao formato de data AAAAMMDD, que poderia ser lido e interpretado pela linguagem R.
+
+**2- Importação dos dataframes**: No RStudio, foi feita a leitura de todos os arquivos, adicionando uma coluna de identificacao "origem", preenchida com os próprios nomes dos arquivos. Assim, é possível identificar a qual mês aquele registro diz respeito. Em seguida, todas as colunas são convertidas para o formato "character", o que permite maior manipulação dos dados. Por fim, foi criada uma lista de data frames com os dados mensais.
+
+Localização no código: xx a xx
+
+**3 - Limpeza e preparação dos dataframes:** Na listagem dos dataframes, são realizados procedimentos de limpeza para facilitar a leitura e processamento computacional dos dados, que, juntos, tem dezenas de gigabites. Permanecem na base de dados apenas as informações que são relevantes para a análise proposta.
+
+**Limpeza 1:** Na coluna "SIGLA_FUNCAO", que indica o cargo de confiança ocupado pelo servidor, são excluídos os dados que não correspodem a um código de função. Assim, são excluídos da análise os servidores puramente de carreira.
+
+**Identificador único:** Foi criado um identificador único, juntando em um único dado uma amálgama do nome do servidor, a parcela do CPF disponibilizada no dado original, o código do cargo ocupado e o código do órgão onde o servidor está lotado.
+
+Esse procedimento tem dois objetivos: evita que servidores homônimos sejam tidos como a mesma pessoa e permite que seja identificado quando uma mesma pessoa muda de cargo mas permanece como comissionado no Poder Executivo Federal. Assim, é criado uma unidade de análise que chamaremos de "servidor-cargo". O identificar único recebe o nome de "ID_AND_CARGO".
+
+**Limpeza 2:** Novamente, as colunas inúteis são deletadas, mantendo apenas as colunas criadas 'ID_AND_CARGO' e "origem", que contém apenas os dados necessários. Assim, a necessidade de processamento computacional a cada operação é reduzida.
+
+**Unindo os dataframes:** Todas as databases foram unidas em uma única. Para isso, foi utilizada a função "full-join", que mantém todas as linhas de todos os data frames, independentemente de haver alguma correspondência ou repetição em mais de uma tabela. Cada database dá uma coluna, marcada com "1" para indicar a presença do servidor-cargo no quadro de funcionarios comissionados. Quando um determinado servidor-cargo não aparecer em determinado mês, a coluna daquele mês será preenchida com "0".
+
+Portanto, o dataframe final será uma grande lista de todos os servidores-cargo comissionados do período analisado. Uma série de colunas é criada, cada uma representando um mês. O mês em que aquele servidor-cargo estava ativo é marcado com "1". Quando não estava ativo, é marcado com "0".
+
+## Calculando a rotatividade
+
+Com essa preparação descrita, passa a ser possível contar o número de servidores comissinados ativos em determinado mês. Também é possível comparar as colunas para contar a continuidade de servidores (aqueles que não sofrem alteração de um mês para outro). Para isso basta contar o número de vezes em que, em uma coluna, o dado é igual ao da coluna anterior.
+
+Assim, foi criada uma nova base de dados, com dados resumidos de número de comissionados em cada mês e o número de inalterados.
+
+**Conceito de rotatividade:** Para calcular a rotatividade aplico o cálculo baseado na permanência de servidores, emprestado do ramo dos Recursos Humanos, mas aplicado para calcular rotatividade de servidores comissionados por Lopez, Bugarin e Bugarin (2015).
+
+*"**Abordagem ampla baseada na permanência (ROT3):** considera que a rotatividade deve ser definida em função de todas as alterações de cargos ocorridas no ano [ou no período a ser estudado], ou seja, deve-se subtrair de 100% apenas o percentual de funcionários que não sofreram qualquer alteração em seus contratos"* (p. 446)
+
+$$ Rotatividade_{it} = \frac{Total_{it-1} - Inalterados_{it}}{Total_{it-1}} $$
+
+Legenda da fórmula: a Rotatividade percentual no órgão "i" e no período "t" ( $Rotatividade\_{it}$ ) é igual à diferença entre "os trabalhadores inalterados" ( $Inalterados_{it}$ ) em determinado período e o total de servidores computados no mês anterior ( $Total_{it-1}$ ) (que resulta nos que sofreram algum tipo de alteração, como entrada, saída ou realocação), dividido pelo total de servidores computados no mês anterior ( $Total_{it-1}$ ).
+
+**Ajustando dados:** Ao se verificar os dados é possível notar que, pela metodologia aplicada, as mudanças ocorridas em um mês sao computadas apenas no mês seguinte. Isso porque a saída ou entrada do servidor-cargo só é notada ao se comparar com os dados do mês seguinte. Portanto, optei por corrigir os dados de rotatividade para que correspondam ao mês em que as mudanças efetivamente ocorreram.
+
+O resultado pode ser visto na seguinte tabela:
+
+```{r include=FALSE}
+calculo_rotatividade_b <- read_csv("~/Lista4/tarefa4/calculo_rotatividade_b.csv")
+```
+
+```{r echo=FALSE}
+
+kable(calculo_rotatividade_b[1:6, 1:5], caption = "Rotatividade mensal dos servidores comissionados Executivo Federal (parcial)")
+```
+
+> *Elaboração própria, com base nos dados do Portal da Transparência. Daniel Marques Vieira PPG-CP. UnB*
+
+# Análise
+
+## Evolução
+
+Para facilitar a análise dos dados, vamos primeiro transpô-los para um gráfico de linha. Para entender o comportamento dos dados, é possível também projetar uma linha de tendência. Assim, será possível melhor analisar o comportamento dos dados e verificar a evolução.
+
+```{r include=FALSE}
+eventos <- data.frame(
+  data = as.Date(c("2014-10-01", "2018-10-01", "2022-10-01", "2016-10-01", "2020-10-01",
+                   "2015-01-01", "2019-01-01", "2023-01-01", "2017-01-01", "2021-01-01")),
+  evento = factor(c("Eleições gerais", "Eleições gerais", "Eleições gerais", "Eleições municipais", "Eleições municipais",
+                    "Posse (Geral)", "Posse (Geral)", "Posse (Geral)", "Posse (Municipal)", "Posse (Municipal)"),
+                  levels = c("Eleições gerais", "Posse (Geral)", "Eleições municipais", "Posse (Municipal)"))
+)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(calculo_rotatividade_b, 
+                   aes(x = mes, group = 1, y = rotatividade, label = rotatividade), stat = "identity") +
+  geom_line() +
+  geom_smooth(method = "lm", se = FALSE, color = "red", linetype = "solid", size = 0.5, alpha = 0.5) +  # Adiciona a linha de tendência
+  theme_minimal() +
+  labs(y= "% Rotatividade", x = "Mes") +
+  ggtitle("Tendência linear - Rotatividade em cargos comissionados\nno Executivo Federal - Jan/2013 a Mar/2023") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(labels = percent) + 
+  scale_x_date(date_breaks = "6 month", limits = as.Date(c("2013-02-01", "2024-03-01")),
+               date_labels = "%b %y")
+```
+
+A representação gráfica permite perceber que há uma tendência crescente na rotatividade dos cargos comissionados. Porém, essa simples representação ainda não responde a hipótese formulada anteriormente. Além disso, outras preocupações surgem a partir do gráfico anterior
+
+**Efeito pós-eleições:** É possível notar que há um padrão de maior rotatividade nos períodos eleitorais e após a posse de um novo presidente da República. Vamos verificar com mais clareza demarcando esses eventos no gráfico.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(calculo_rotatividade_b, 
+                   aes(x = mes, group = 1, y = rotatividade, label = rotatividade), stat = "identity") +
+  geom_line() +
+  theme_minimal() +
+  labs(y= "% Rotatividade", x = "Mes") +
+  ggtitle("Rotatividade em cargos comissionados no Executivo Federal\nJan/2013 a Mar/2023, considerando eleições") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom") +
+  scale_y_continuous(labels = percent) + 
+  scale_x_date(date_breaks = "6 month", limits = as.Date(c("2013-02-01", "2024-03-01")),
+               date_labels = "%b %y") +
+  geom_vline(data = eventos, aes(xintercept = data, color = evento, linetype = evento), size = 1, alpha = 0.5) +
+  scale_color_manual(name = "Eventos",
+                     values = c("Eleições gerais" = "orange", "Posse (Geral)" = "orange", 
+                                "Eleições municipais" = "cyan", "Posse (Municipal)" = "cyan"),
+                     labels = c("Eleições gerais", "Posse (Geral)", "Eleições municipais", "Posse (Municipal)")) +
+  scale_linetype_manual(name = "Eventos",
+                        values = c("Eleições gerais" = "solid", "Posse (Geral)" = "dotted", 
+                                   "Eleições municipais" = "solid", "Posse (Municipal)" = "dotted")) +
+  guides(color = guide_legend(override.aes = list(linetype = c("solid", "dotted", "solid", "dotted"), size = 1)),
+         linetype = "none")
+
+```
+
+O gráfico parece confirmar que as eleições geram efeitos na rotatividade de pessoal, havendo picos muito claros em janeiro de 2019 (posse de Jair Bolsonaro) e janeiro de 2023 (posse de Lula, em seu terceiro mandato). Na eleição municipal de 2020, é possível notar uma alta rotatividade no mês anterior ao pleito. Esse efeito **não** **é explicado** pelo prazo de descompatibilização eleitoral, já que este é de 3, 4 ou 6 meses antes das eleições, a depender do cargo pleiteado. Não é o foco deste estudo, mas é possível hipotetizar, para análises futuras, que as eleições municipais também geram preocupação no chefe do Executivo Federal em criar alianças locais, ou que servidores comissionados deixam o cargo na reta final das eleições para se envolver na campanha de seus apadrinhados políticos.
+
+Porém, o gráfico também parece indicar que a intensidade da rotatividade próximas às eleições, o que parece ser natural, aumentou com o tempo e que outros períodos de maior rotatividade se tornaram mais frequentes fora do período eleitoral.
+
+## Dividindo em dois períodos
+
+Outra forma de dividir os dados em períodos seria tentar encontrar um momento crítico em que um evento tenha gerado uma mudança institucional que alterou o padrão de rotatividade dos servidores. Uma avaliação superficial dos dados nos permite elaborar a hipotese de que o período após o impeachment de Dilma tem uma maior rotatividade de cargos públicos de livre provimento.
+
+Prosseguimos, portanto, para o teste dessa hipótese. Para isso, definimos dois períodos de corte: antes e depois do afastamento de Dilma, em agosto de 2016. Voltamos ao banco de dados. Criamos a variável "pos_imp", que terá o valor "1" para o período após o afastamento e "0" para antes do afastamento.
+
+```{r include=FALSE}
+calculo_rotatividade_b <- calculo_rotatividade_b %>%
+  mutate(ano = year(mes),
+         pos_imp = if_else(mes > ymd("2016-08-31"), 1, 0))
+```
+
+### Representação gráfica dos dois períodos
+
+Vamos, novamente, utilizar as ferramentas de representação gráfica para avaliar se a hipotese faz sentido.
+
+```{r include=FALSE}
+summary_stats <- calculo_rotatividade_b %>%
+  group_by(pos_imp) %>%
+  summarize(
+    mean_percent_rotat = mean(percent_rotat, na.rm = TRUE),
+    ci_lower = mean_percent_rotat - qt(0.975, df=n()-1) * sd(percent_rotat, na.rm = TRUE)/sqrt(n()),
+    ci_upper = mean_percent_rotat + qt(0.975, df=n()-1) * sd(percent_rotat, na.rm = TRUE)/sqrt(n())
+  )
+```
+
+Primeiro, faremos um gráfico de densidade, em que será possível verificar se há diferença entre as médias dos meses pré e pós impeachment. Também será possível verificar de forma visual o quão frequente é a ocorrência de níveis mais baixos ou altos de rotatividade em cada um desses grupos de meses. No gráfico abaixo, as linhas tracejadas representam as médias.
+
+```{r echo=FALSE}
+ggplot(calculo_rotatividade_b, aes(x = percent_rotat, fill = factor(pos_imp, labels = c("Pré-Afastamento", "Pós-Afastamento")))) +
+  geom_density(alpha = 0.6, color = NA) +
+  geom_vline(data = summary_stats, aes(xintercept = mean_percent_rotat, color = factor(pos_imp, labels = c("Pré-Afastamento", "Pós-Afastamento"))), linetype = "dashed", size = 1) +
+  scale_fill_manual(values = c("#1F77B4", "#FF7F0E")) +
+  scale_color_manual(values = c("#1F77B4", "#FF7F0E")) + 
+  labs(
+    title = "Distribuição de densidade da rotatividade antes\ne depois do afastamento de Dilma",
+    x = "Percentual de Rotatividade",
+    y = "Densidade",
+    fill = "Período",
+    color = "Período"
+  ) +
+  theme_minimal()
+```
+
+**Análise do gráfico:** visualmente, é possível verificar que antes do impeachment, a rotatividade se concentra antes de 7%, tendo um pico inferior a 3%. No período pós-impeachment, há o registro de meses de rotatividades mais altas, beirando os 12%.
+
+O mesmo pode ser verificado ao se produzir um gráfico de pontos com os dados. No gráfico abaixo cada ponto representa um mês. Apesar dos meses ordinários terem ocorrências de rotatividade parecidas nos dois grupos, após o impeachment há maior número de ocorrências de alta rotatividade.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(calculo_rotatividade_b, aes(y = percent_rotat, x = factor(pos_imp, labels = c("Pré-Afastamento", "Pós-Afastamento")), color = factor(pos_imp))) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE, linetype = "dashed", color = "black") +
+  scale_color_manual(values = c("#1F77B4", "#FF7F0E")) + # cores mais escuras
+  labs(
+    title = "Rotatividade mensal antes\ne depois do afastamento de Dilma",
+    y = "Percentual de Rotatividade",
+    x = "Período",
+    color = "Grupo"
+  ) +
+  theme_minimal()
+```
+
+### Testando a correlação
+
+Agora que as representações gráficas parecem corroborar a nossa hipótese, é preciso validá-la matematicamente. Para verificar se há correlação entre o impeachment de Dilma e a rotatividade dos servidores comissionados, é preciso verificar se a média de rotatividade no período anterior é diferente da média no período posterior. Assim, será feito o chamado "teste t", cujos resultados estão resumidos abaixo:
+
+```{r include=FALSE}
+t_test_result <- t.test(percent_rotat ~ pos_imp, data = calculo_rotatividade_b)
+
+tidy_t_test <- tidy(t_test_result)
+```
+
+```{r include=FALSE}
+kable(tidy_t_test, format = "html") %>%
+  kable_styling(full_width = F, bootstrap_options = c("striped", "hover", "condensed"))
+
+
+```
+
+```{r echo=FALSE}
+tidy_t_test %>%
+  gt() %>%
+  tab_header(
+    title = "Resultados do Teste t de Student",
+    subtitle = "Comparação das médias de percent_rotat por pos_imp"
+  )
+```
+
+**Achados:**
+
+Na tabela acima, podemos ver em "estimate1", que a média de rotatividade no período pré-impeachment é de aproximadamente 3,12%. Em "estimante2", é possível verificar que a média pós-impeachment é de aproximadamente 4,17%.
+
+O valor t inferior a 0 (-4.1022) indica que a **média mensal de rotatividade dos servidores comissionados é menor antes do afastamento de Dilma** **e maior após o afastamento**.
+
+O p-valor de número muito pequeno (7.106e−05 = 0.00007106) indica que **a diferença entre os dois momentos observados é estatisticamente significativa.** Isso significa que a possibilidade de um erro de tipo 2 é ínfima. Se o valor fosse igual ou superior a 0,05 seria considerado que o risco de não haver correlação real entre os dois fatores seria significativa.
+
+## Limitações da análise
+
+Apesar do teste estatístico demonstrar que a diferença entre os períodos pré e pós impeachment são significativos e que possivelmente há correlação entre o impeachment e a rotatividade, a análise não está totalmente protegida de alguns possíveis erros. Isso porque nos dois períodos analisados outros eventos relevantes podem ter impactado a rotatividade.
+
+Após o impeachment de Dilma, especialmente, as características particulares do governo Temer, Bolsonaro e Lula 3 podem influenciar a rotatividade sem necessariamente estarem relacionados em uma relação causa-consequência com o impeachment. Temer, por exemplo, contava com índices minúsculos de popularidade o que evitava que tivesse pretenção pela reeleição. Isso pode ter influenciado seu estilo de governo e de coalizão.
+
+Além disso, no período anterior ao impeachment, é esperado que a posse de Dilma gerasse menor impacto na rotativavidade, uma vez que ela assumia para seu segundo mandato, mantendo a coalizão já estabelecida em seu primeiro governo.
+
+# Conclusão e desenvolvimento futuro
+
+A análise de dados mostra que é sim possível dizer que, após o impeachment de Dilma Rousseff a rotatividade dos servidores públicos aumentou. Contudo, é possível pontuar a necessidade de análises futuras para se verificar se esse padrão se manterá estável, indicando uma transformação institucional e o crescimento no custo de coalizão de todos os governos, ou se o padrão antigo se reestabelecerá.
+
+O trabalho seguirá em desenvolvimento de modo a explorar análises ainda mais confiáveis. Para isso, deve-se pontuar que a análise terá mais base se houver maior disponibilização de dados para meses anteriores a janeiro de 2013 e ao ficarem disponíveis os dados dos meses futuros. Assim, será possível analisar períodos com períodos iguais de eleições nacionais sem continuidade do presidente da República. Esse e outros mecanismos devem ser utilizados para que períodos equivalentes sejam comparados. Uma análise mais apronfundada deverá também repetir os testes, com a retirada de eventuais outliers.
+
+# Referências
+
+ABRANCHES, Sérgio. **Presidencialismo de coalizão: o dilema institucional brasileiro**. Dados – Revista de Ciências Sociais, Rio de Janeiro, v. 31, n. 1, p. 5-38, 1988.
+
+RAILE, Eric; PEREIRA, Carlos; POWER, Timothy. The executive toolbox: building legislative support in a multiparty presidential regime. Political Research Quarterly, Salt Lake City, v. 64, n. 2, p. 323-334, 2011. Disponível em: <https://www.jstor.org/stable/23056394>. Acesso em: 20 jul. 2023.
+
+LOPEZ, Felix; BUGARIN, Maurício; BUGARIN, Karina. Mudanças Político-Partidárias e Rotatividade dos Cargos de Confiança (1999-2013). In: LOPEZ, Felix Garcia. C**argos de confiança no presidencialismo de coalizão brasileiro**. Brasília: Instituto de Pesquisa Econômica Aplicada (IPEA), 2015. cap. 1, p. 33-70.
