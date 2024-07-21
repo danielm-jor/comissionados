@@ -1,0 +1,217 @@
+---
+title: "Instabilidade institucional e a rotatividade dos servidores comissionados"
+author: "Daniel Marques Vieira | Mestrando em Ciência Política - Ipol/UnB"
+date: "`r Sys.Date()`"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+library(readr)
+library(scales)
+library(infer)
+library(knitr)
+library(broom)
+library(kableExtra)
+library(gt)
+```
+
+```{r include=FALSE}
+calculo_rotatividade_b <- read_csv("~/Lista4/tarefa4/calculo_rotatividade_b.csv")
+```
+
+# Introdução
+
+## Mudanças na "Caixa de Ferramentas"
+
+O presidencialismo de coalizão e suas ferramentas não são elementos estáticos – uma lei que se aplica independentemente do contexto. Mudanças estruturais podem levar a alterações também no equilíbrio das forças do presidencialismo de coalizão. Ferramentas ganham e perdem força, a governabilidade pode se tornar mais fácil ou mais difícil de se conseguir.
+
+*"Choques externos (crises econômicas, desemprego, inflação etc.) e internos (reformas ministeriais, eleições de meio de mandato para prefeitos, escândalos de corrupção etc.) também podem impactar decisivamente o equilíbrio e utilidades que o presidente e seus parceiros derivam do jogo da coalizão"*(BERTHOLINI; PEREIRA, 2017, p. 535)
+
+## Hipótese
+
+A hipótese a ser testada nesse trabalho é de que o processo de impeachment de Dilma Rousseff (PT) afetou um dos principais itens da "caixa de ferramentas" (RAILE, PEREIRA e POWER, 2011) que o presidente da República, como chefe do Poder Executivo, dispõe para formação de uma coalizão majoritária no Parlamento: os cargos de comissão.
+
+Em resumo: o impeachment de Dilma deve ter resultado em um maior custo de coalizão e, portanto, uma maior rotatividade dos servidores comissionados.
+
+## Comissionados?
+
+O trabalho considera os **cargos de livre provimento**, sobre os quais o chefe do Executivo pode dispor livremente, contratando ou demitindo seus ocupantes no momento que desejar. São cargos que dependem de confiança, normalmente de direção, chefia ou assessoramento.
+
+# Os dados
+
+## Origem
+
+-   Base de dados de elaboração própria, com base nos dados do Portal da Transparência. Os dados disponíveis vão de janeiro de 2013 aos dias atuais.
+
+-   Os dados precisaram ser unificados, tratados e analisados com ajuda do software computacional R.
+
+## O que será considerado rotatividade?
+
+*"A rotatividade deve ser definida em função de todas as alterações de cargos ocorridas no ano [ou no período a ser estudado], ou seja, deve-se subtrair de 100% apenas o percentual de funcionários que não sofreram qualquer alteração em seus contratos"*
+
+A Rotatividade percentual no órgão "i" e no período "t" ( $Rotatividade\_{it}$ ) é igual à diferença entre "os trabalhadores inalterados" ( $Inalterados_{it}$ ) em determinado período e o total de servidores computados no mês anterior ( $Total_{it-1}$ ) (que resulta nos que sofreram algum tipo de alteração, como entrada, saída ou realocação), dividido pelo total de servidores computados no mês anterior ( $Total_{it-1}$ ).
+
+$$ Rotatividade_{it} = \frac{Total_{it-1} - Inalterados_{it}}{Total_{it-1}} $$
+
+## Base de dados final
+
+```{r include=FALSE}
+calculo_rotatividade_b <- read_csv("~/Lista4/tarefa4/calculo_rotatividade_b.csv")
+```
+
+```{r echo=FALSE}
+
+kable(calculo_rotatividade_b[1:6, 1:5], caption = "Rotatividade mensal dos servidores comissionados Executivo Federal (parcial)")
+```
+
+# Análise
+
+## Evolução
+
+```{r include=FALSE}
+eventos <- data.frame(
+  data = as.Date(c("2014-10-01", "2018-10-01", "2022-10-01", "2016-10-01", "2020-10-01",
+                   "2015-01-01", "2019-01-01", "2023-01-01", "2017-01-01", "2021-01-01")),
+  evento = factor(c("Eleições gerais", "Eleições gerais", "Eleições gerais", "Eleições municipais", "Eleições municipais",
+                    "Posse (Geral)", "Posse (Geral)", "Posse (Geral)", "Posse (Municipal)", "Posse (Municipal)"),
+                  levels = c("Eleições gerais", "Posse (Geral)", "Eleições municipais", "Posse (Municipal)"))
+)
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(calculo_rotatividade_b, 
+                   aes(x = mes, group = 1, y = rotatividade, label = rotatividade), stat = "identity") +
+  geom_line() +
+  geom_smooth(method = "lm", se = FALSE, color = "red", linetype = "solid", size = 0.5, alpha = 0.5) +  # Adiciona a linha de tendência
+  theme_minimal() +
+  labs(y= "% Rotatividade", x = "Mes") +
+  ggtitle("Tendência linear - Rotatividade em cargos comissionados\nno Executivo Federal - Jan/2013 a Mar/2023") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_y_continuous(labels = percent) + 
+  scale_x_date(date_breaks = "6 month", limits = as.Date(c("2013-02-01", "2024-03-01")),
+               date_labels = "%b %y")
+```
+
+## Achados
+
+-   Tendência crescente na rotatividade dos cargos comissionados;
+
+## Efeito das eleições
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(calculo_rotatividade_b, 
+                   aes(x = mes, group = 1, y = rotatividade, label = rotatividade), stat = "identity") +
+  geom_line() +
+  theme_minimal() +
+  labs(y= "% Rotatividade", x = "Mes") +
+  ggtitle("Rotatividade em cargos comissionados no Executivo Federal\nJan/2013 a Mar/2023, considerando eleições") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom") +
+  scale_y_continuous(labels = percent) + 
+  scale_x_date(date_breaks = "6 month", limits = as.Date(c("2013-02-01", "2024-03-01")),
+               date_labels = "%b %y") +
+  geom_vline(data = eventos, aes(xintercept = data, color = evento, linetype = evento), size = 1, alpha = 0.5) +
+  scale_color_manual(name = "Eventos",
+                     values = c("Eleições gerais" = "orange", "Posse (Geral)" = "orange", 
+                                "Eleições municipais" = "cyan", "Posse (Municipal)" = "cyan"),
+                     labels = c("Eleições gerais", "Posse (Geral)", "Eleições municipais", "Posse (Municipal)")) +
+  scale_linetype_manual(name = "Eventos",
+                        values = c("Eleições gerais" = "solid", "Posse (Geral)" = "dotted", 
+                                   "Eleições municipais" = "solid", "Posse (Municipal)" = "dotted")) +
+  guides(color = guide_legend(override.aes = list(linetype = c("solid", "dotted", "solid", "dotted"), size = 1)),
+         linetype = "none")
+
+```
+
+## Achados
+
+-   Eleições geram efeitos na rotatividade de pessoal, havendo picos muito claros em janeiro de 2019 (posse de Jair Bolsonaro) e janeiro de 2023 (posse de Lula, em seu terceiro mandato).
+
+-   A intensidade da rotatividade próximas às eleições, o que parece ser natural, aumentou com o tempo e que outros períodos de maior rotatividade se tornaram mais frequentes fora do período eleitoral.
+
+# Antes e depois do Impeachment
+
+## Impeachment afetou a rotatividade?
+
+Para verificar se o impeachment teve efeito na rotatividade, separamos os dados mensais anteriores e posteriores ao impeachment.
+
+```{r include=FALSE}
+calculo_rotatividade_b <- calculo_rotatividade_b %>%
+  mutate(ano = year(mes),
+         pos_imp = if_else(mes > ymd("2016-08-31"), 1, 0))
+```
+
+```{r include=FALSE}
+summary_stats <- calculo_rotatividade_b %>%
+  group_by(pos_imp) %>%
+  summarize(
+    mean_percent_rotat = mean(percent_rotat, na.rm = TRUE),
+    ci_lower = mean_percent_rotat - qt(0.975, df=n()-1) * sd(percent_rotat, na.rm = TRUE)/sqrt(n()),
+    ci_upper = mean_percent_rotat + qt(0.975, df=n()-1) * sd(percent_rotat, na.rm = TRUE)/sqrt(n())
+  )
+```
+
+```{r echo=FALSE}
+ggplot(calculo_rotatividade_b, aes(x = percent_rotat, fill = factor(pos_imp, labels = c("Pré-Afastamento", "Pós-Afastamento")))) +
+  geom_density(alpha = 0.6, color = NA) +
+  geom_vline(data = summary_stats, aes(xintercept = mean_percent_rotat, color = factor(pos_imp, labels = c("Pré-Afastamento", "Pós-Afastamento"))), linetype = "dashed", size = 1) +
+  scale_fill_manual(values = c("#1F77B4", "#FF7F0E")) +
+  scale_color_manual(values = c("#1F77B4", "#FF7F0E")) + 
+  labs(
+    title = "Distribuição de densidade da rotatividade antes\ne depois do afastamento de Dilma",
+    x = "Percentual de Rotatividade",
+    y = "Densidade",
+    fill = "Período",
+    color = "Período"
+  ) +
+  theme_minimal()
+```
+
+## Achados
+
+No gráfico, é possível ver que antes do impeachment, a rotatividade se concentra antes de 7%, tendo um pico inferior a 3%. No período pós-impeachment, há o registro de meses de rotatividades mais altas, beirando os 12%.
+
+## Testando a correlação
+
+```{r include=FALSE}
+t_test_result <- t.test(percent_rotat ~ pos_imp, data = calculo_rotatividade_b)
+
+tidy_t_test <- tidy(t_test_result)
+```
+
+```{r include=FALSE}
+kable(tidy_t_test, format = "html") %>%
+  kable_styling(full_width = F, bootstrap_options = c("striped", "hover", "condensed"))
+
+
+```
+
+```{r echo=FALSE}
+tidy_t_test %>%
+  gt() %>%
+  tab_header(
+    title = "Resultados do Teste t de Student",
+    subtitle = "Comparação das médias de percent_rotat por pos_imp"
+  )
+```
+
+## Traduzindo os resultados:
+
+-   A média de rotatividade no período pré-impeachment é de aproximadamente 3,12%. A média pós-impeachment é de aproximadamente 4,17%.
+
+-   A **média mensal de rotatividade dos servidores comissionados é menor antes do afastamento de Dilma** **e maior após o afastamento**.
+
+-   A **diferença entre os dois momentos observados é estatisticamente significativa.**
+
+## Referências
+
+ABRANCHES, Sérgio. **Presidencialismo de coalizão: o dilema institucional brasileiro**. Dados – Revista de Ciências Sociais, Rio de Janeiro, v. 31, n. 1, p. 5-38, 1988.
+
+RAILE, Eric; PEREIRA, Carlos; POWER, Timothy. The executive toolbox: building legislative support in a multiparty presidential regime. Political Research Quarterly, Salt Lake City, v. 64, n. 2, p. 323-334, 2011. Disponível em: <https://www.jstor.org/stable/23056394>. Acesso em: 20 jul. 2023.
+
+LOPEZ, Felix; BUGARIN, Maurício; BUGARIN, Karina. Mudanças Político-Partidárias e Rotatividade dos Cargos de Confiança (1999-2013). In: LOPEZ, Felix Garcia. C**argos de confiança no presidencialismo de coalizão brasileiro**. Brasília: Instituto de Pesquisa Econômica Aplicada (IPEA), 2015. cap. 1, p. 33-70.
+
+BERTHOLINI, Frederico; PEREIRA, Carlos. Pagando o preço de governar: custos de gerência de coalizão no presidencialismo brasileiro. Revista de Administração Pública, Rio de Janeiro, v. 51, n. 4, p. 528-551, jul./ago. 2017. Disponível em: https://www.scielo.br/j/rap/a/9przPh6zP4sTwMds84qcj3B/?lang=pt. Acesso em: 21 jul. 2024.

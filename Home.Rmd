@@ -1,0 +1,24 @@
+---
+title: "Trabalho final - Métodos Quantitativos Aplicados à Ciência Política"
+author: "Daniel Marques Vieira | Mestrando em Ciência Política - Ipol/UnB"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Componentes do trabalho
+
+O trabalho é composto por três arquivos, que podem todos ser encontrados [NESTE](https://github.com/danielm-jor/comissionados) Github.
+
+Listo abaixo os links diretos:
+
+Apresentação de slides pública: [AQUI](https://danielm-jor.github.io/comissionados/apresentacaorotatividade.html)
+
+Versão em texto: [AQUI](https://danielm-jor.github.io/comissionados/rotatividadehtml.html)
+
+Scripts: [AQUI](https://github.com/danielm-jor/comissionados)
+
+![](https://gifdb.com/images/high/thank-goodness-i-took-that-coding-course-gkl7f76y3vwkuyh9.gif)
